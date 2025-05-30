@@ -34,6 +34,7 @@ try {
             // Voting hasn't ended and results aren't public
             if (!Auth::isAdminLoggedIn()) {
                 echo json_encode([
+                    'success' => false,
                     'error' => 'Results not yet available',
                     'message' => 'Results will be available after voting ends'
                 ]);
@@ -51,12 +52,7 @@ try {
             n.manifesto,
             n.photo, 
             COUNT(v.id) as votes,
-            n.created_at,
-            (SELECT COUNT(DISTINCT user_id) 
-             FROM votes v2 
-             WHERE v2.candidate_id IN 
-                (SELECT id FROM nominations n2 WHERE n2.position = n.position)
-            ) as position_total_voters
+            n.created_at
         FROM 
             nominations n
         LEFT JOIN 
@@ -73,79 +69,11 @@ try {
                 WHEN 'treasurer' THEN 4
                 ELSE 5
             END,
-            votes DESC, n.candidate_name ASC
+            COUNT(v.id) DESC, n.candidate_name ASC
     ");
     
     $results_stmt->execute();
     $results = $results_stmt->fetchAll();
-    
-    // Process results to add additional information
-    $processed_results = [];
-    $position_stats = [];
-    
-    foreach ($results as $result) {
-        $position = $result['position'];
-        
-        // Initialize position stats if not exists
-        if (!isset($position_stats[$position])) {
-            $position_stats[$position] = [
-                'total_votes' => 0,
-                'total_candidates' => 0,
-                'leading_candidate' => null,
-                'is_tie' => false
-            ];
-        }
-        
-        // Update position statistics
-        $position_stats[$position]['total_votes'] += (int)$result['votes'];
-        $position_stats[$position]['total_candidates']++;
-        
-        // Determine leading candidate
-        if ($position_stats[$position]['leading_candidate'] === null || 
-            (int)$result['votes'] > $position_stats[$position]['leading_candidate']['votes']) {
-            $position_stats[$position]['leading_candidate'] = [
-                'name' => $result['candidate_name'],
-                'votes' => (int)$result['votes']
-            ];
-            $position_stats[$position]['is_tie'] = false;
-        } elseif ((int)$result['votes'] === $position_stats[$position]['leading_candidate']['votes'] && 
-                  (int)$result['votes'] > 0) {
-            $position_stats[$position]['is_tie'] = true;
-        }
-        
-        // Calculate percentage
-        $total_position_votes = $position_stats[$position]['total_votes'];
-        $percentage = $total_position_votes > 0 ? 
-            round(((int)$result['votes'] / $total_position_votes) * 100, 2) : 0;
-        
-        // Determine if this candidate is winning
-        $is_winner = !$position_stats[$position]['is_tie'] && 
-                    $position_stats[$position]['leading_candidate']['name'] === $result['candidate_name'] &&
-                    (int)$result['votes'] > 0;
-        
-        // Add processed result
-        $processed_result = [
-            'id' => $result['id'],
-            'candidate_name' => $result['candidate_name'],
-            'position' => $result['position'],
-            'position_display' => ucfirst(str_replace('_', ' ', $result['position'])),
-            'manifesto' => $result['manifesto'],
-            'votes' => (int)$result['votes'],
-            'percentage' => $percentage,
-            'is_winner' => $is_winner,
-            'is_tie' => $position_stats[$position]['is_tie'],
-            'position_total_votes' => $total_position_votes,
-            'position_total_voters' => (int)$result['position_total_voters'],
-            'created_at' => $result['created_at']
-        ];
-        
-        // Include photo if available
-        if ($result['photo']) {
-            $processed_result['photo'] = base64_encode($result['photo']);
-        }
-        
-        $processed_results[] = $processed_result;
-    }
     
     // Get overall election statistics
     $overall_stats_stmt = $db->prepare("
@@ -162,6 +90,90 @@ try {
     // Calculate turnout rate
     $turnout_rate = $overall_stats['total_registered_users'] > 0 ? 
         round(($overall_stats['total_voters'] / $overall_stats['total_registered_users']) * 100, 2) : 0;
+    
+    // Process results to add additional information
+    $processed_results = [];
+    $position_stats = [];
+    
+    foreach ($results as $result) {
+        $position = $result['position'];
+        $votes = (int)$result['votes'];
+        
+        // Initialize position stats if not exists
+        if (!isset($position_stats[$position])) {
+            $position_stats[$position] = [
+                'total_votes' => 0,
+                'total_candidates' => 0,
+                'candidates' => []
+            ];
+        }
+        
+        // Update position statistics
+        $position_stats[$position]['total_votes'] += $votes;
+        $position_stats[$position]['total_candidates']++;
+        $position_stats[$position]['candidates'][] = [
+            'name' => $result['candidate_name'],
+            'votes' => $votes
+        ];
+        
+        // Calculate percentage for this position
+        $position_total = 0;
+        foreach ($results as $r) {
+            if ($r['position'] === $position) {
+                $position_total += (int)$r['votes'];
+            }
+        }
+        
+        $percentage = $position_total > 0 ? round(($votes / $position_total) * 100, 2) : 0;
+        
+        // Add processed result
+        $processed_result = [
+            'id' => (int)$result['id'],
+            'candidate_name' => $result['candidate_name'],
+            'position' => $result['position'],
+            'position_display' => ucfirst(str_replace('_', ' ', $result['position'])),
+            'manifesto' => $result['manifesto'],
+            'votes' => $votes,
+            'percentage' => $percentage,
+            'position_total_votes' => $position_total,
+            'created_at' => $result['created_at']
+        ];
+        
+        // Include photo if available
+        if ($result['photo']) {
+            $processed_result['photo'] = base64_encode($result['photo']);
+        }
+        
+        $processed_results[] = $processed_result;
+    }
+    
+    // Determine winners for each position
+    foreach ($position_stats as $position => &$stats) {
+        if (!empty($stats['candidates'])) {
+            usort($stats['candidates'], function($a, $b) {
+                return $b['votes'] - $a['votes'];
+            });
+            
+            $highest_votes = $stats['candidates'][0]['votes'];
+            $stats['winner'] = $highest_votes > 0 ? $stats['candidates'][0]['name'] : null;
+            
+            // Check for ties
+            $tied_candidates = array_filter($stats['candidates'], function($c) use ($highest_votes) {
+                return $c['votes'] === $highest_votes && $highest_votes > 0;
+            });
+            $stats['is_tie'] = count($tied_candidates) > 1;
+        }
+    }
+    
+    // Mark winners in processed results
+    foreach ($processed_results as &$result) {
+        $position = $result['position'];
+        $result['is_winner'] = isset($position_stats[$position]['winner']) && 
+                               $position_stats[$position]['winner'] === $result['candidate_name'] &&
+                               !$position_stats[$position]['is_tie'];
+        $result['is_tie'] = isset($position_stats[$position]['is_tie']) ? 
+                           $position_stats[$position]['is_tie'] : false;
+    }
     
     // Prepare final response
     $response = [

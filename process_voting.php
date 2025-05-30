@@ -1,6 +1,7 @@
 <?php
 define('UCES_SYSTEM', true);
 require_once 'config.php';
+require_once 'vote_integrity_system.php'; // Include our integrity system
 
 // Require user authentication
 Auth::requireLogin();
@@ -9,6 +10,7 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $errors = [];
 $success = false;
+$verification_tokens = [];
 
 // Only process POST requests
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -25,6 +27,7 @@ try {
     }
     
     $db = Database::getInstance()->getConnection();
+    $voteIntegrity = VoteIntegrity::getInstance();
     
     // Start transaction for data consistency
     $db->beginTransaction();
@@ -40,7 +43,7 @@ try {
         throw new Exception("User already voted");
     }
     
-    // Check if voting is enabled
+    // Check if voting is enabled and election is active
     $settings_stmt = $db->prepare("
         SELECT setting_key, setting_value 
         FROM election_settings 
@@ -134,24 +137,41 @@ try {
         throw new Exception("Rate limit exceeded");
     }
     
-    // Insert votes
-    $vote_insert = $db->prepare("
-        INSERT INTO votes (user_id, candidate_id, position, created_at, ip_address, user_agent) 
-        VALUES (?, ?, ?, NOW(), ?, ?)
-    ");
-    
+    // Create secure vote records with blockchain-like integrity
     $ip_address = Security::getClientIP();
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
     
     foreach ($submitted_votes as $position => $candidate_id) {
-        $vote_insert->execute([$user_id, $candidate_id, $position, $ip_address, $user_agent]);
+        // Prepare vote data for integrity system
+        $voteData = [
+            'user_id' => $user_id,
+            'candidate_id' => $candidate_id,
+            'position' => $position,
+            'ip_address' => $ip_address,
+            'user_agent' => $user_agent
+        ];
+        
+        // Create secure vote record with cryptographic protection
+        $integrityResult = $voteIntegrity->createSecureVoteRecord($voteData);
+        
+        if (!$integrityResult['success']) {
+            throw new Exception("Failed to create secure vote record");
+        }
+        
+        // Store verification token for the voter
+        $verification_tokens[$position] = [
+            'vote_id' => $integrityResult['vote_id'],
+            'hash' => $integrityResult['hash'],
+            'token' => $integrityResult['verification_token']
+        ];
     }
     
-    // Log successful voting
-    Security::logSecurityEvent('vote_cast_success', [
+    // Log successful voting with integrity information
+    Security::logSecurityEvent('vote_cast_success_with_integrity', [
         'vote_count' => count($submitted_votes),
         'positions' => array_keys($submitted_votes),
-        'votes' => $vote_data
+        'votes' => $vote_data,
+        'integrity_hashes' => array_column($verification_tokens, 'hash')
     ], $user_id);
     
     // Commit transaction
@@ -163,20 +183,23 @@ try {
         unset($_SESSION['voting_data']);
     }
     
+    // Store verification tokens in session for display to user
+    $_SESSION['vote_verification_tokens'] = $verification_tokens;
+    
 } catch (Exception $e) {
     // Rollback transaction on error
     if (isset($db) && $db->inTransaction()) {
         $db->rollback();
     }
     
-    error_log("Voting process error for user $username: " . $e->getMessage());
+    error_log("Enhanced voting process error for user $username: " . $e->getMessage());
     
     if (empty($errors)) {
         $errors[] = "An error occurred while processing your vote. Please try again.";
     }
     
     // Log failed voting attempt
-    Security::logSecurityEvent('vote_cast_failed', [
+    Security::logSecurityEvent('vote_cast_failed_with_integrity', [
         'error' => $e->getMessage(),
         'submitted_data' => array_keys($_POST)
     ], $user_id);
@@ -187,7 +210,8 @@ if ($success) {
     // Set success message in session
     $_SESSION['vote_success'] = true;
     $_SESSION['vote_success_time'] = time();
-    header("Location: welcome.php?voted=1");
+    $_SESSION['vote_with_integrity'] = true; // Flag for enhanced success message
+    header("Location: welcome.php?voted=1&integrity=1");
 } else {
     // Set error messages in session
     $_SESSION['vote_errors'] = $errors;

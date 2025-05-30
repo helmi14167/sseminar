@@ -391,6 +391,16 @@
             100% { transform: rotate(360deg); }
         }
         
+        .error-message {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            color: #ff6b6b;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
         .footer {
             background: rgba(17, 17, 17, 0.95);
             text-align: center;
@@ -502,6 +512,10 @@
             <p>Loading election results...</p>
         </div>
 
+        <div class="error-message" id="errorMessage" style="display: none;">
+            <p id="errorText"></p>
+        </div>
+
         <div class="results-container" id="resultsContainer" style="display: none;">
             <!-- Results will be populated here -->
         </div>
@@ -521,6 +535,7 @@
     <script>
         let resultsChart = null;
         let lastFetchTime = null;
+        let positionCharts = {};
 
         // Position icons mapping
         const positionIcons = {
@@ -540,61 +555,63 @@
 
         async function fetchResults() {
             try {
-                const response = await fetch('fetch_results.php');
+                console.log('Fetching results...');
+                const response = await fetch('fetch_results.php', {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    }
+                });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const results = await response.json();
+                const data = await response.json();
+                console.log('Received data:', data);
                 
-                if (results.error) {
-                    throw new Error(results.error);
+                if (!data.success) {
+                    throw new Error(data.message || data.error || 'Unknown error');
                 }
                 
-                displayResults(results);
+                displayResults(data);
                 updateLastFetchTime();
+                hideError();
                 
             } catch (error) {
                 console.error('Error fetching results:', error);
-                showError('Failed to load results. Retrying...');
+                showError('Failed to load results: ' + error.message);
             }
         }
 
-        function displayResults(results) {
+        function displayResults(data) {
             const loadingIndicator = document.getElementById('loadingIndicator');
             const resultsContainer = document.getElementById('resultsContainer');
             const noResults = document.getElementById('noResults');
-            const statsOverview = document.getElementById('statsOverview');
 
             loadingIndicator.style.display = 'none';
 
-            if (!results || results.length === 0) {
+            if (!data.results || data.results.length === 0) {
                 noResults.style.display = 'block';
                 resultsContainer.style.display = 'none';
+                updateStats(data.statistics || {});
                 return;
             }
 
             noResults.style.display = 'none';
             resultsContainer.style.display = 'block';
 
+            // Update statistics
+            updateStats(data.statistics);
+
             // Group results by position
             const groupedResults = {};
-            let totalVotes = 0;
-            let totalCandidates = 0;
-            const votersSet = new Set();
-
-            results.forEach(result => {
+            data.results.forEach(result => {
                 if (!groupedResults[result.position]) {
                     groupedResults[result.position] = [];
                 }
                 groupedResults[result.position].push(result);
-                totalVotes += parseInt(result.votes) || 0;
-                totalCandidates++;
             });
-
-            // Update stats
-            updateStats(totalVotes, totalCandidates, votersSet.size);
 
             // Clear previous results
             resultsContainer.innerHTML = '';
@@ -604,18 +621,18 @@
                 const candidates = groupedResults[position];
                 
                 // Sort candidates by votes (descending)
-                candidates.sort((a, b) => (parseInt(b.votes) || 0) - (parseInt(a.votes) || 0));
+                candidates.sort((a, b) => (b.votes || 0) - (a.votes || 0));
                 
                 // Calculate total votes for this position
                 const positionTotalVotes = candidates.reduce((sum, candidate) => 
-                    sum + (parseInt(candidate.votes) || 0), 0);
+                    sum + (candidate.votes || 0), 0);
 
                 const positionDiv = createPositionSection(position, candidates, positionTotalVotes);
                 resultsContainer.appendChild(positionDiv);
             });
 
-            // Create charts for visual representation
-            createResultsChart(results);
+            // Trigger animations
+            setTimeout(animateVoteBars, 500);
         }
 
         function createPositionSection(position, candidates, totalVotes) {
@@ -634,7 +651,7 @@
                     <div class="total-votes">${totalVotes} Total Votes</div>
                 </div>
                 <div class="candidates-results">
-                    ${candidates.map((candidate, index) => createCandidateResult(candidate, totalVotes, index === 0)).join('')}
+                    ${candidates.map((candidate, index) => createCandidateResult(candidate, totalVotes, index === 0 && candidate.votes > 0)).join('')}
                 </div>
                 <div class="chart-container">
                     <div class="chart-title">${positionName} - Vote Distribution</div>
@@ -651,26 +668,23 @@
         }
 
         function createCandidateResult(candidate, totalVotes, isWinner) {
-            const votes = parseInt(candidate.votes) || 0;
+            const votes = candidate.votes || 0;
             const percentage = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : 0;
             
             let barClass = 'vote-bar';
-            if (isWinner) barClass += ' winner';
-            else if (votes > 0) {
-                // Add different colors for 2nd and 3rd place
-                const sortedVotes = [votes]; // This would need more context in real implementation
-                barClass += votes === sortedVotes[1] ? ' second' : ' third';
+            if (isWinner && votes > 0) {
+                barClass += ' winner';
             }
 
             const photoSrc = candidate.photo ? 
                 `data:image/jpeg;base64,${candidate.photo}` : 
-                `data:image/svg+xml;base64,${btoa(`<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="80" fill="#4CAF50"/><text x="40" y="50" font-family="Arial" font-size="30" fill="white" text-anchor="middle" dy=".3em">${candidate.candidate_name.charAt(0).toUpperCase()}</text></svg>`)}`;
+                createDefaultAvatar(candidate.candidate_name);
 
             return `
-                <div class="candidate-result ${isWinner ? 'winner' : ''}">
-                    ${isWinner ? '<div class="winner-badge">🏆 WINNER</div>' : ''}
+                <div class="candidate-result ${isWinner && votes > 0 ? 'winner' : ''}">
+                    ${isWinner && votes > 0 ? '<div class="winner-badge">🏆 WINNER</div>' : ''}
                     <img src="${photoSrc}" alt="${candidate.candidate_name}" class="candidate-photo" 
-                         onerror="this.src='data:image/svg+xml;base64,${btoa(`<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="80" fill="#4CAF50"/><text x="40" y="50" font-family="Arial" font-size="30" fill="white" text-anchor="middle" dy=".3em">${candidate.candidate_name.charAt(0).toUpperCase()}</text></svg>`)}'">
+                         onerror="this.src='${createDefaultAvatar(candidate.candidate_name)}'">
                     <div class="candidate-info">
                         <div class="candidate-name">${candidate.candidate_name}</div>
                         <div class="vote-bar-container">
@@ -684,18 +698,28 @@
             `;
         }
 
+        function createDefaultAvatar(name) {
+            const initial = name.charAt(0).toUpperCase();
+            return `data:image/svg+xml;base64,${btoa(`<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="80" fill="#4CAF50"/><text x="40" y="50" font-family="Arial" font-size="30" fill="white" text-anchor="middle" dy=".3em">${initial}</text></svg>`)}`;
+        }
+
         function createPositionChart(position, candidates) {
             const ctx = document.getElementById(`chart-${position}`);
             if (!ctx) return;
 
+            // Destroy existing chart if it exists
+            if (positionCharts[position]) {
+                positionCharts[position].destroy();
+            }
+
             const labels = candidates.map(c => c.candidate_name);
-            const data = candidates.map(c => parseInt(c.votes) || 0);
+            const data = candidates.map(c => c.votes || 0);
             const colors = [
                 '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', 
                 '#F44336', '#00BCD4', '#CDDC39', '#FF5722'
             ];
 
-            new Chart(ctx, {
+            positionCharts[position] = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
@@ -717,63 +741,13 @@
             });
         }
 
-        function createResultsChart(results) {
-            const ctx = document.getElementById('overallChart');
-            if (!ctx) return;
-
-            // Destroy existing chart
-            if (resultsChart) {
-                resultsChart.destroy();
-            }
-
-            const labels = results.map(r => r.candidate_name);
-            const data = results.map(r => parseInt(r.votes) || 0);
-
-            resultsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Votes',
-                        data: data,
-                        backgroundColor: 'rgba(255, 193, 7, 0.6)',
-                        borderColor: 'rgba(255, 193, 7, 1)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#fff' }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#444' },
-                            ticks: { color: '#fff' }
-                        },
-                        x: {
-                            grid: { color: '#444' },
-                            ticks: { 
-                                color: '#fff',
-                                maxRotation: 45
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateStats(totalVotes, totalCandidates, totalVoters) {
-            document.getElementById('totalVotes').textContent = totalVotes.toLocaleString();
-            document.getElementById('totalCandidates').textContent = totalCandidates;
-            document.getElementById('totalVoters').textContent = totalVoters;
+        function updateStats(statistics) {
+            if (!statistics) return;
             
-            // Calculate turnout rate (this would need total registered users from backend)
-            // For now, showing a placeholder
-            document.getElementById('turnoutRate').textContent = totalVoters > 0 ? `${Math.min(100, Math.round((totalVoters / 1000) * 100))}%` : '0%';
+            document.getElementById('totalVotes').textContent = (statistics.total_votes_cast || 0).toLocaleString();
+            document.getElementById('totalCandidates').textContent = statistics.total_candidates || 0;
+            document.getElementById('totalVoters').textContent = statistics.total_voters || 0;
+            document.getElementById('turnoutRate').textContent = `${statistics.turnout_rate || 0}%`;
         }
 
         function updateLastFetchTime() {
@@ -783,29 +757,19 @@
         }
 
         function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
             const loadingIndicator = document.getElementById('loadingIndicator');
-            loadingIndicator.innerHTML = `
-                <div style="color: #ff6b6b; text-align: center;">
-                    <p>⚠️ ${message}</p>
-                </div>
-            `;
+            
+            loadingIndicator.style.display = 'none';
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
         }
 
-        // Initialize and set up auto-refresh
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchResults();
-            
-            // Auto-refresh every 10 seconds
-            setInterval(fetchResults, 10000);
-            
-            // Add refresh button functionality
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
-                    e.preventDefault();
-                    fetchResults();
-                }
-            });
-        });
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+        }
 
         // Smooth animations for vote bars
         function animateVoteBars() {
@@ -819,8 +783,22 @@
             });
         }
 
-        // Call animation after results are displayed
-        setTimeout(animateVoteBars, 500);
+        // Initialize and set up auto-refresh
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, fetching initial results...');
+            fetchResults();
+            
+            // Auto-refresh every 10 seconds
+            setInterval(fetchResults, 10000);
+            
+            // Add manual refresh on F5
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                    e.preventDefault();
+                    fetchResults();
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -53,65 +53,113 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                     
                     if (empty($errors)) {
-                        if ($action === 'add') {
-                            $stmt = $db->prepare("
-                                INSERT INTO nominations (candidate_name, position, manifesto, photo, is_approved, approved_by, approved_at) 
-                                VALUES (?, ?, ?, ?, 1, ?, NOW())
-                            ");
-                            $stmt->execute([$candidate_name, $position, $manifesto, $photo, $_SESSION['admin_id']]);
-                            $success_messages[] = "Candidate added successfully.";
-                            
-                            Security::logSecurityEvent('candidate_added', [
-                                'candidate_name' => $candidate_name,
-                                'position' => $position
-                            ], null, $_SESSION['admin_id']);
-                        } else {
-                            if ($photo) {
-                                $stmt = $db->prepare("
-                                    UPDATE nominations 
-                                    SET candidate_name = ?, position = ?, manifesto = ?, photo = ?
-                                    WHERE id = ?
+                        // Start transaction
+                        $db->beginTransaction();
+                        
+                        try {
+                            if ($action === 'add') {
+                                // Check for duplicate candidate (same name and position)
+                                $duplicate_check = $db->prepare("
+                                    SELECT id FROM nominations 
+                                    WHERE candidate_name = ? AND position = ?
                                 ");
-                                $stmt->execute([$candidate_name, $position, $manifesto, $photo, $candidate_id]);
+                                $duplicate_check->execute([$candidate_name, $position]);
+                                
+                                if ($duplicate_check->fetch()) {
+                                    throw new Exception("A candidate with this name already exists for this position.");
+                                }
+                                
+                                $stmt = $db->prepare("
+                                    INSERT INTO nominations (candidate_name, position, manifesto, photo, is_approved, approved_by, approved_at) 
+                                    VALUES (?, ?, ?, ?, 1, ?, NOW())
+                                ");
+                                $stmt->execute([$candidate_name, $position, $manifesto, $photo, $_SESSION['admin_id']]);
+                                $success_messages[] = "Candidate added successfully.";
+                                
+                                Security::logSecurityEvent('candidate_added', [
+                                    'candidate_name' => $candidate_name,
+                                    'position' => $position
+                                ], null, $_SESSION['admin_id']);
                             } else {
-                                $stmt = $db->prepare("
-                                    UPDATE nominations 
-                                    SET candidate_name = ?, position = ?, manifesto = ?
-                                    WHERE id = ?
+                                // Check for duplicate when editing (exclude current candidate)
+                                $duplicate_check = $db->prepare("
+                                    SELECT id FROM nominations 
+                                    WHERE candidate_name = ? AND position = ? AND id != ?
                                 ");
-                                $stmt->execute([$candidate_name, $position, $manifesto, $candidate_id]);
+                                $duplicate_check->execute([$candidate_name, $position, $candidate_id]);
+                                
+                                if ($duplicate_check->fetch()) {
+                                    throw new Exception("A candidate with this name already exists for this position.");
+                                }
+                                
+                                if ($photo) {
+                                    $stmt = $db->prepare("
+                                        UPDATE nominations 
+                                        SET candidate_name = ?, position = ?, manifesto = ?, photo = ?
+                                        WHERE id = ?
+                                    ");
+                                    $stmt->execute([$candidate_name, $position, $manifesto, $photo, $candidate_id]);
+                                } else {
+                                    $stmt = $db->prepare("
+                                        UPDATE nominations 
+                                        SET candidate_name = ?, position = ?, manifesto = ?
+                                        WHERE id = ?
+                                    ");
+                                    $stmt->execute([$candidate_name, $position, $manifesto, $candidate_id]);
+                                }
+                                $success_messages[] = "Candidate updated successfully.";
+                                
+                                Security::logSecurityEvent('candidate_updated', [
+                                    'candidate_id' => $candidate_id,
+                                    'candidate_name' => $candidate_name
+                                ], null, $_SESSION['admin_id']);
                             }
-                            $success_messages[] = "Candidate updated successfully.";
                             
-                            Security::logSecurityEvent('candidate_updated', [
-                                'candidate_id' => $candidate_id,
-                                'candidate_name' => $candidate_name
-                            ], null, $_SESSION['admin_id']);
+                            // Commit transaction
+                            $db->commit();
+                            
+                        } catch (Exception $e) {
+                            // Rollback transaction on error
+                            $db->rollback();
+                            $errors[] = $e->getMessage();
                         }
                     }
                 } elseif ($action === 'delete') {
                     $candidate_id = (int)$_POST['candidate_id'];
                     
-                    // Get candidate info before deletion
-                    $stmt = $db->prepare("SELECT candidate_name FROM nominations WHERE id = ?");
-                    $stmt->execute([$candidate_id]);
-                    $candidate = $stmt->fetch();
+                    // Start transaction
+                    $db->beginTransaction();
                     
-                    if ($candidate) {
-                        // Delete votes first
-                        $stmt = $db->prepare("DELETE FROM votes WHERE candidate_id = ?");
+                    try {
+                        // Get candidate info before deletion
+                        $stmt = $db->prepare("SELECT candidate_name FROM nominations WHERE id = ?");
                         $stmt->execute([$candidate_id]);
+                        $candidate = $stmt->fetch();
                         
-                        // Delete candidate
-                        $stmt = $db->prepare("DELETE FROM nominations WHERE id = ?");
-                        $stmt->execute([$candidate_id]);
+                        if ($candidate) {
+                            // Delete votes first
+                            $stmt = $db->prepare("DELETE FROM votes WHERE candidate_id = ?");
+                            $stmt->execute([$candidate_id]);
+                            
+                            // Delete candidate
+                            $stmt = $db->prepare("DELETE FROM nominations WHERE id = ?");
+                            $stmt->execute([$candidate_id]);
+                            
+                            $success_messages[] = "Candidate deleted successfully.";
+                            
+                            Security::logSecurityEvent('candidate_deleted', [
+                                'candidate_id' => $candidate_id,
+                                'candidate_name' => $candidate['candidate_name']
+                            ], null, $_SESSION['admin_id']);
+                        }
                         
-                        $success_messages[] = "Candidate deleted successfully.";
+                        // Commit transaction
+                        $db->commit();
                         
-                        Security::logSecurityEvent('candidate_deleted', [
-                            'candidate_id' => $candidate_id,
-                            'candidate_name' => $candidate['candidate_name']
-                        ], null, $_SESSION['admin_id']);
+                    } catch (Exception $e) {
+                        // Rollback transaction on error
+                        $db->rollback();
+                        $errors[] = "Failed to delete candidate: " . $e->getMessage();
                     }
                 }
             }
@@ -151,13 +199,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                     
                     if (empty($errors)) {
-                        if ($action === 'add') {
-                            // Check for duplicates
-                            $stmt = $db->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
-                            $stmt->execute([$username, $email]);
-                            if ($stmt->fetch()) {
-                                $errors[] = "Username or email already exists.";
-                            } else {
+                        // Start transaction
+                        $db->beginTransaction();
+                        
+                        try {
+                            if ($action === 'add') {
+                                // Check for duplicates
+                                $stmt = $db->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+                                $stmt->execute([$username, $email]);
+                                if ($stmt->fetch()) {
+                                    throw new Exception("Username or email already exists.");
+                                }
+                                
                                 $hashedPassword = Security::hashPassword($password);
                                 $stmt = $db->prepare("
                                     INSERT INTO users (username, password, email, full_name, created_at, is_active) 
@@ -170,70 +223,102 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     'username' => $username,
                                     'email' => $email
                                 ], null, $_SESSION['admin_id']);
-                            }
-                        } else {
-                            if (!empty($password)) {
-                                $hashedPassword = Security::hashPassword($password);
-                                $stmt = $db->prepare("
-                                    UPDATE users 
-                                    SET username = ?, password = ?, email = ?, full_name = ?
-                                    WHERE id = ?
-                                ");
-                                $stmt->execute([$username, $hashedPassword, $email, $full_name, $user_id]);
                             } else {
-                                $stmt = $db->prepare("
-                                    UPDATE users 
-                                    SET username = ?, email = ?, full_name = ?
-                                    WHERE id = ?
-                                ");
-                                $stmt->execute([$username, $email, $full_name, $user_id]);
+                                // Check for duplicates when editing (exclude current user)
+                                $stmt = $db->prepare("SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?");
+                                $stmt->execute([$username, $email, $user_id]);
+                                if ($stmt->fetch()) {
+                                    throw new Exception("Username or email already exists.");
+                                }
+                                
+                                if (!empty($password)) {
+                                    $hashedPassword = Security::hashPassword($password);
+                                    $stmt = $db->prepare("
+                                        UPDATE users 
+                                        SET username = ?, password = ?, email = ?, full_name = ?
+                                        WHERE id = ?
+                                    ");
+                                    $stmt->execute([$username, $hashedPassword, $email, $full_name, $user_id]);
+                                } else {
+                                    $stmt = $db->prepare("
+                                        UPDATE users 
+                                        SET username = ?, email = ?, full_name = ?
+                                        WHERE id = ?
+                                    ");
+                                    $stmt->execute([$username, $email, $full_name, $user_id]);
+                                }
+                                $success_messages[] = "User updated successfully.";
+                                
+                                Security::logSecurityEvent('user_updated', [
+                                    'user_id' => $user_id,
+                                    'username' => $username
+                                ], null, $_SESSION['admin_id']);
                             }
-                            $success_messages[] = "User updated successfully.";
                             
-                            Security::logSecurityEvent('user_updated', [
-                                'user_id' => $user_id,
-                                'username' => $username
-                            ], null, $_SESSION['admin_id']);
+                            // Commit transaction
+                            $db->commit();
+                            
+                        } catch (Exception $e) {
+                            // Rollback transaction on error
+                            $db->rollback();
+                            $errors[] = $e->getMessage();
                         }
                     }
                 } elseif ($action === 'delete') {
                     $user_id = (int)$_POST['user_id'];
                     
-                    // Get user info before deletion
-                    $stmt = $db->prepare("SELECT username FROM users WHERE id = ?");
-                    $stmt->execute([$user_id]);
-                    $user = $stmt->fetch();
+                    // Start transaction
+                    $db->beginTransaction();
                     
-                    if ($user) {
-                        // Delete user votes first
-                        $stmt = $db->prepare("DELETE FROM votes WHERE user_id = ?");
+                    try {
+                        // Get user info before deletion
+                        $stmt = $db->prepare("SELECT username FROM users WHERE id = ?");
                         $stmt->execute([$user_id]);
+                        $user = $stmt->fetch();
                         
-                        // Delete user
-                        $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
-                        $stmt->execute([$user_id]);
+                        if ($user) {
+                            // Delete user votes first
+                            $stmt = $db->prepare("DELETE FROM votes WHERE user_id = ?");
+                            $stmt->execute([$user_id]);
+                            
+                            // Delete user
+                            $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+                            $stmt->execute([$user_id]);
+                            
+                            $success_messages[] = "User deleted successfully.";
+                            
+                            Security::logSecurityEvent('user_deleted', [
+                                'deleted_user_id' => $user_id,
+                                'username' => $user['username']
+                            ], null, $_SESSION['admin_id']);
+                        }
                         
-                        $success_messages[] = "User deleted successfully.";
+                        // Commit transaction
+                        $db->commit();
                         
-                        Security::logSecurityEvent('user_deleted', [
-                            'deleted_user_id' => $user_id,
-                            'username' => $user['username']
-                        ], null, $_SESSION['admin_id']);
+                    } catch (Exception $e) {
+                        // Rollback transaction on error
+                        $db->rollback();
+                        $errors[] = "Failed to delete user: " . $e->getMessage();
                     }
                 } elseif ($action === 'toggle_status') {
                     $user_id = (int)$_POST['user_id'];
                     $new_status = (int)$_POST['new_status'];
                     
-                    $stmt = $db->prepare("UPDATE users SET is_active = ? WHERE id = ?");
-                    $stmt->execute([$new_status, $user_id]);
-                    
-                    $status_text = $new_status ? 'activated' : 'deactivated';
-                    $success_messages[] = "User $status_text successfully.";
-                    
-                    Security::logSecurityEvent('user_status_changed', [
-                        'user_id' => $user_id,
-                        'new_status' => $new_status
-                    ], null, $_SESSION['admin_id']);
+                    try {
+                        $stmt = $db->prepare("UPDATE users SET is_active = ? WHERE id = ?");
+                        $stmt->execute([$new_status, $user_id]);
+                        
+                        $status_text = $new_status ? 'activated' : 'deactivated';
+                        $success_messages[] = "User $status_text successfully.";
+                        
+                        Security::logSecurityEvent('user_status_changed', [
+                            'user_id' => $user_id,
+                            'new_status' => $new_status
+                        ], null, $_SESSION['admin_id']);
+                    } catch (Exception $e) {
+                        $errors[] = "Failed to update user status: " . $e->getMessage();
+                    }
                 }
             }
             
@@ -249,6 +334,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $errors[] = "An error occurred. Please try again.";
         }
     }
+    
+    // Redirect to prevent resubmission
+    if (!empty($success_messages) || !empty($errors)) {
+        $_SESSION['admin_messages'] = [
+            'errors' => $errors,
+            'success' => $success_messages
+        ];
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+}
+
+// Retrieve messages from session
+if (isset($_SESSION['admin_messages'])) {
+    $errors = $_SESSION['admin_messages']['errors'] ?? [];
+    $success_messages = $_SESSION['admin_messages']['success'] ?? [];
+    unset($_SESSION['admin_messages']);
 }
 
 // Fetch data for display
@@ -324,7 +426,9 @@ $csrf_token = Security::generateCSRFToken();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo SITE_NAME; ?> - Admin Dashboard</title>
+    <!-- Include the existing CSS from the original file -->
     <style>
+        /* All the existing CSS styles remain the same */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
@@ -577,6 +681,11 @@ $csrf_token = Security::generateCSRFToken();
             color: #ccc;
         }
         
+        .form-submitting {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
         @media (max-width: 768px) {
             .header { padding: 1rem; flex-direction: column; gap: 1rem; }
             .main-content { padding: 1rem; }
@@ -666,7 +775,7 @@ $csrf_token = Security::generateCSRFToken();
             <div class="form-grid">
                 <div>
                     <h3>Add/Edit Candidate</h3>
-                    <form method="POST" enctype="multipart/form-data" id="candidateForm">
+                    <form method="POST" enctype="multipart/form-data" id="candidateForm" onsubmit="return handleFormSubmit(this)">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="candidate_action" value="add" id="candidateAction">
                         <input type="hidden" name="candidate_id" id="candidateId">
@@ -730,7 +839,7 @@ $csrf_token = Security::generateCSRFToken();
                             <td><?php echo date('M j, Y', strtotime($candidate['created_at'])); ?></td>
                             <td class="action-buttons">
                                 <button class="btn btn-secondary" onclick="editCandidate(<?php echo $candidate['id']; ?>)">Edit</button>
-                                <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this candidate?');">
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this candidate?') && handleFormSubmit(this);">
                                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                     <input type="hidden" name="candidate_action" value="delete">
                                     <input type="hidden" name="candidate_id" value="<?php echo $candidate['id']; ?>">
@@ -756,7 +865,7 @@ $csrf_token = Security::generateCSRFToken();
             <div class="form-grid">
                 <div>
                     <h3>Add/Edit User</h3>
-                    <form method="POST" id="userForm">
+                    <form method="POST" id="userForm" onsubmit="return handleFormSubmit(this)">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="user_action" value="add" id="userAction">
                         <input type="hidden" name="user_id" id="userId">
@@ -827,7 +936,7 @@ $csrf_token = Security::generateCSRFToken();
                             <td><?php echo $user['last_login'] ? date('M j, Y H:i', strtotime($user['last_login'])) : 'Never'; ?></td>
                             <td class="action-buttons">
                                 <button class="btn btn-secondary" onclick="editUser(<?php echo $user['id']; ?>)">Edit</button>
-                                <form method="POST" style="display: inline;">
+                                <form method="POST" style="display: inline;" onsubmit="return handleFormSubmit(this)">
                                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                     <input type="hidden" name="user_action" value="toggle_status">
                                     <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
@@ -836,7 +945,7 @@ $csrf_token = Security::generateCSRFToken();
                                         <?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?>
                                     </button>
                                 </form>
-                                <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user? This will also delete their votes.');">
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user? This will also delete their votes.') && handleFormSubmit(this);">
                                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                     <input type="hidden" name="user_action" value="delete">
                                     <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
@@ -863,7 +972,6 @@ $csrf_token = Security::generateCSRFToken();
             
             const labels = chartData.map(item => item.candidate_name);
             const votes = chartData.map(item => parseInt(item.vote_count));
-            const positions = chartData.map(item => item.position);
             
             new Chart(ctx, {
                 type: 'bar',
@@ -900,6 +1008,30 @@ $csrf_token = Security::generateCSRFToken();
         });
         <?php endif; ?>
 
+        // Prevent double submissions
+        function handleFormSubmit(form) {
+            if (form.classList.contains('form-submitting')) {
+                return false;
+            }
+            
+            form.classList.add('form-submitting');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = submitBtn.innerHTML.replace(/^[^<]*/, 'Processing...');
+            }
+            
+            // Re-enable after 10 seconds as fallback
+            setTimeout(() => {
+                form.classList.remove('form-submitting');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                }
+            }, 10000);
+            
+            return true;
+        }
+
         // Candidate management functions
         function editCandidate(id) {
             fetch(`get_nomination.php?id=${id}`)
@@ -927,6 +1059,7 @@ $csrf_token = Security::generateCSRFToken();
             document.getElementById('candidateAction').value = 'add';
             document.getElementById('candidateSubmitBtn').textContent = 'Add Candidate';
             document.getElementById('photo').required = true;
+            document.getElementById('candidateForm').classList.remove('form-submitting');
         }
 
         // User management functions
@@ -954,6 +1087,7 @@ $csrf_token = Security::generateCSRFToken();
             document.getElementById('userId').value = '';
             document.getElementById('userAction').value = 'add';
             document.getElementById('userSubmitBtn').textContent = 'Add User';
+            document.getElementById('userForm').classList.remove('form-submitting');
         }
 
         // Form validation
@@ -965,12 +1099,14 @@ $csrf_token = Security::generateCSRFToken();
             if (!name || !position || !manifesto) {
                 e.preventDefault();
                 alert('Please fill in all required fields');
+                this.classList.remove('form-submitting');
                 return;
             }
             
             if (manifesto.length > 1000) {
                 e.preventDefault();
                 alert('Manifesto must be 1000 characters or less');
+                this.classList.remove('form-submitting');
                 return;
             }
         });
@@ -985,32 +1121,31 @@ $csrf_token = Security::generateCSRFToken();
             if (!username || !email || !fullName) {
                 e.preventDefault();
                 alert('Please fill in all required fields');
+                this.classList.remove('form-submitting');
                 return;
             }
             
             if (isAdd && !password) {
                 e.preventDefault();
                 alert('Password is required for new users');
+                this.classList.remove('form-submitting');
                 return;
             }
             
             if (password && password.length < 8) {
                 e.preventDefault();
                 alert('Password must be at least 8 characters long');
+                this.classList.remove('form-submitting');
                 return;
             }
             
             if (!/^[0-9]+$/.test(username)) {
                 e.preventDefault();
                 alert('Student ID must contain only numbers');
+                this.classList.remove('form-submitting');
                 return;
             }
         });
-
-        // Auto-refresh stats every 30 seconds
-        setInterval(function() {
-            location.reload();
-        }, 30000);
     </script>
 </body>
 </html>
