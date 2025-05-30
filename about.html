@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCES - About Us</title>
+    <meta name="description" content="Learn about the University Council Election System and our commitment to democratic participation">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(33, 150, 243, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 152, 0, 0.1) 0%, transparent 50%);
+            filter: blur(40px);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            33% { transform: translateY(-30px) scale(1.1); }
+            66% { transform: translateY(-20px) scale(0.9); }
+        }
+        
+        .header {
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #333;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2196F3;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo::before {
+            content: '🏛️';
+            font-size: 1.5rem;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        nav a:hover, nav a.active {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .hero-section {
+            text-align: center;
+            padding: 4rem 0;
+            margin-bottom: 4rem;
+        }
+        
+        .hero-section h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #2196F3, #64b5f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-section p {
+            font-size: 1.3rem;
+            color: #ccc;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+        
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .stat-item {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2196F3;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #ccc;
+            font-size: 1rem;
+        }
+        
+        .content-section {
+            margin-bottom: 4rem;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            color: #2196F3;
+            margin-bottom: 1rem;
+        }
+        
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #ccc;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 15px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #2196F3, #64b5f6);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(33, 150, 243, 0.2);
+            border-color: rgba(33, 150, 243, 0.3);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            color: #2196F3;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        
+        .feature-description {
+            color: #ccc;
+            line-height: 1.6;
+        }
+        
+        .mission-section {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(76, 175, 80, 0.1));
+            border-radius: 20px;
+            padding: 4rem;
+            text-align: center;
+            margin: 4rem 0;
+        }
+        
+        .mission-section h2 {
+            font-size: 2.5rem;
+            color: #2196F3;
+            margin-bottom: 2rem;
+        }
+        
+        .mission-text {
+            font-size: 1.3rem;
+            color: #ccc;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.8;
+        }
+        
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .value-item {
+            background: rgba(51, 51, 51, 0.6);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .value-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .value-title {
+            font-size: 1.3rem;
+            color: #2196F3;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        
+        .value-description {
+            color: #ccc;
+            font-size: 0.95rem;
+        }
+        
+        .team-section {
+            background: rgba(51, 51, 51, 0.5);
+            border-radius: 20px;
+            padding: 4rem;
+            margin: 4rem 0;
+        }
+        
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .team-member {
+            background: rgba(68, 68, 68, 0.8);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .team-member:hover {
+            transform: translateY(-5px);
+        }
+        
+        .member-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2196F3, #64b5f6);
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .member-name {
+            font-size: 1.5rem;
+            color: #2196F3;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .member-role {
+            color: #ccc;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .member-description {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .contact-section {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(255, 152, 0, 0.1));
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+        
+        .contact-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #2196F3;
+        }
+        
+        .contact-section p {
+            font-size: 1.1rem;
+            color: #ccc;
+            margin-bottom: 2rem;
+        }
+        
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+        
+        .contact-item {
+            background: rgba(51, 51, 51, 0.6);
+            border-radius: 10px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .contact-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .contact-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .contact-title {
+            font-size: 1.2rem;
+            color: #2196F3;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .contact-details {
+            color: #ccc;
+        }
+        
+        .footer {
+            background: rgba(17, 17, 17, 0.95);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            border-top: 1px solid #333;
+        }
+        
+        .footer p {
+            color: #ccc;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            nav ul {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .hero-section h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .mission-section {
+                padding: 2rem;
+            }
+            
+            .values-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .team-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">About UCES</a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html" class="active">About</a></li>
+                    <li><a href="nomination.php">Candidates</a></li>
+                    <li><a href="results.html">Results</a></li>
+                    <li><a href="faqs.html">FAQs</a></li>
+                    <li><a href="login.php">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="hero-section">
+            <h1>About UCES</h1>
+            <p>The University Council Election System is a comprehensive platform designed to facilitate democratic participation in student governance. We believe every student voice matters in shaping the future of higher education.</p>
+            
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-number">10,000+</span>
+                    <span class="stat-label">Students Served</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">50+</span>
+                    <span class="stat-label">Universities</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">200+</span>
+                    <span class="stat-label">Elections Conducted</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">99.9%</span>
+                    <span class="stat-label">Uptime</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">Why UCES?</h2>
+                <p class="section-subtitle">Built specifically for educational institutions with security, accessibility, and transparency at its core.</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🔒</span>
+                    <h3 class="feature-title">Enterprise Security</h3>
+                    <p class="feature-description">Advanced encryption, multi-factor authentication, and comprehensive audit logging ensure election integrity and voter privacy.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">📱</span>
+                    <h3 class="feature-title">Universal Access</h3>
+                    <p class="feature-description">Responsive design works seamlessly across all devices. Vote from anywhere with reliable internet connectivity.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">📊</span>
+                    <h3 class="feature-title">Real-Time Results</h3>
+                    <p class="feature-description">Live vote counting with transparent results and comprehensive analytics for complete election oversight.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">⚡</span>
+                    <h3 class="feature-title">High Performance</h3>
+                    <p class="feature-description">Built to handle thousands of concurrent users with 99.9% uptime and lightning-fast response times.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🌍</span>
+                    <h3 class="feature-title">Inclusive Design</h3>
+                    <p class="feature-description">Accessibility features and multi-language support ensure every student can participate in the democratic process.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🏆</span>
+                    <h3 class="feature-title">Proven Track Record</h3>
+                    <p class="feature-description">Trusted by universities worldwide with a history of successful elections and satisfied administrators.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mission-section">
+            <h2>Our Mission</h2>
+            <p class="mission-text">
+                To empower students with secure, accessible, and transparent digital voting solutions that strengthen democratic participation in higher education. We believe that every student deserves a voice in shaping their academic experience and future.
+            </p>
+            
+            <div class="values-grid">
+                <div class="value-item">
+                    <div class="value-icon">🎯</div>
+                    <h3 class="value-title">Transparency</h3>
+                    <p class="value-description">Open processes with full audit trails and verifiable results</p>
+                </div>
+                
+                <div class="value-item">
+                    <div class="value-icon">🔐</div>
+                    <h3 class="value-title">Security</h3>
+                    <p class="value-description">Bank-level security protecting voter privacy and election integrity</p>
+                </div>
+                
+                <div class="value-item">
+                    <div class="value-icon">♿</div>
+                    <h3 class="value-title">Accessibility</h3>
+                    <p class="value-description">Inclusive design ensuring every student can participate</p>
+                </div>
+                
+                <div class="value-item">
+                    <div class="value-icon">🤝</div>
+                    <h3 class="value-title">Reliability</h3>
+                    <p class="value-description">Dependable service with 24/7 monitoring and support</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="team-section">
+            <div class="section-header">
+                <h2 class="section-title">Meet Our Team</h2>
+                <p class="section-subtitle">Passionate professionals dedicated to advancing democratic participation in education.</p>
+            </div>
+            
+            <div class="team-grid">
+                
+                
+                <div class="team-member">
+                    <div class="member-avatar">OH</div>
+                    <h3 class="member-name">Omar Hreizat</h3>
+                    <p class="member-role">Security Specialist&FullStack developer</p>
+                    <p class="member-description">Cybersecurity expert ensuring election integrity through advanced security protocols and continuous monitoring.</p>
+                </div>
+                
+                <div class="team-member">
+                    <div class="member-avatar">HZ</div>
+                    <h3 class="member-name">Helmi AboZer</h3>
+                    <p class="member-role">UX Designer&Project Director&Security Specialist
+
+</p>
+                    <p class="member-description">User experience designer focused on creating accessible and intuitive interfaces for diverse student populations,Cybersecurity expert ensuring election integrity through advanced security protocols and continuous monitoring.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="contact-section">
+            <h2>Get in Touch</h2>
+            <p>Have questions about UCES or interested in implementing it at your institution?</p>
+            
+            <div class="contact-info">
+                <div class="contact-item">
+                    <div class="contact-icon">📧</div>
+                    <h3 class="contact-title">Email</h3>
+                    <p class="contact-details">helmi.abozer@students.alquds.edu
+                        omar.hreizat@students.alquds.edu<br>support@uces@alquds.edu</p>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">📞</div>
+                    <h3 class="contact-title">Phone</h3>
+                    <p class="contact-details">+972 598997138<br>Available 24/7 during elections</p>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">🏢</div>
+                    <h3 class="contact-title">Office</h3>
+                    <p class="contact-details">University Technology Center<br>AQU-IT department</p>
+                </div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon">🌐</div>
+                    <h3 class="contact-title">Resources</h3>
+                    <p class="contact-details">Documentation<br>Training Materials<br>Best Practices</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 University Council Election System. All rights reserved.</p>
+        <p>Empowering democratic participation in higher education since 2025.</p>
+    </footer>
+
+    <script>
+        // Smooth scrolling for internal links
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate stats on scroll
+            const animateStats = () => {
+                const statNumbers = document.querySelectorAll('.stat-number');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const target = entry.target;
+                            const finalValue = target.textContent.replace(/[+,%]/g, '');
+                            let currentValue = 0;
+                            const increment = finalValue / 100;
+                            const suffix = target.textContent.match(/[+,%]/g)?.join('') || '';
+                            
+                            const updateCounter = () => {
+                                if (currentValue < finalValue) {
+                                    currentValue += increment;
+                                    target.textContent = Math.floor(currentValue).toLocaleString() + suffix;
+                                    setTimeout(updateCounter, 20);
+                                } else {
+                                    target.textContent = parseInt(finalValue).toLocaleString() + suffix;
+                                }
+                            };
+                            
+                            updateCounter();
+                            observer.unobserve(target);
+                        }
+                    });
+                });
+                
+                statNumbers.forEach(stat => observer.observe(stat));
+            };
+            
+            animateStats();
+            
+            // Add scroll animations for cards
+            const cards = document.querySelectorAll('.feature-card, .team-member, .value-item');
+            const cardObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            });
+            
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                cardObserver.observe(card);
+            });
+        });
+        
+        // Interactive team member cards
+        document.querySelectorAll('.team-member').forEach(member => {
+            member.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+            
+            member.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

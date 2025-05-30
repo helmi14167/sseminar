@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCES - Frequently Asked Questions</title>
+    <meta name="description" content="Find answers to common questions about the University Council Election System">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(156, 39, 176, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(33, 150, 243, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(76, 175, 80, 0.1) 0%, transparent 50%);
+            filter: blur(40px);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            33% { transform: translateY(-30px) scale(1.1); }
+            66% { transform: translateY(-20px) scale(0.9); }
+        }
+        
+        .header {
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #333;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #9c27b0;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo::before {
+            content: '❓';
+            font-size: 1.5rem;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        nav a:hover, nav a.active {
+            background: rgba(156, 39, 176, 0.2);
+            color: #9c27b0;
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .page-header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #9c27b0, #e1bee7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-header p {
+            font-size: 1.2rem;
+            color: #ccc;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .search-box {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 50px;
+            padding: 1rem 2rem;
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus-within {
+            border-color: #9c27b0;
+            box-shadow: 0 0 20px rgba(156, 39, 176, 0.3);
+        }
+        
+        .search-input {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.1rem;
+            flex: 1;
+            outline: none;
+        }
+        
+        .search-input::placeholder {
+            color: #999;
+        }
+        
+        .search-icon {
+            color: #9c27b0;
+            font-size: 1.2rem;
+        }
+        
+        .faq-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .category-card {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(156, 39, 176, 0.2);
+            border-color: rgba(156, 39, 176, 0.3);
+        }
+        
+        .category-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .category-title {
+            font-size: 1.3rem;
+            color: #9c27b0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .category-count {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        
+        .faq-section {
+            margin-bottom: 3rem;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+            color: #9c27b0;
+            margin-bottom: 2rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .section-title::before,
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #9c27b0, transparent);
+        }
+        
+        .faq-container {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .faq-item {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-item.active {
+            border-color: rgba(156, 39, 176, 0.5);
+            box-shadow: 0 5px 20px rgba(156, 39, 176, 0.2);
+        }
+        
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-question:hover {
+            background: rgba(156, 39, 176, 0.1);
+            color: #9c27b0;
+        }
+        
+        .faq-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(45deg);
+        }
+        
+        .faq-answer {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            color: #ccc;
+            line-height: 1.6;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 0 1.5rem 1.5rem;
+        }
+        
+        .highlight {
+            background: rgba(156, 39, 176, 0.2);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: #e1bee7;
+        }
+        
+        .contact-section {
+            background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(33, 150, 243, 0.1));
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+        
+        .contact-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #9c27b0;
+        }
+        
+        .contact-section p {
+            font-size: 1.1rem;
+            color: #ccc;
+            margin-bottom: 2rem;
+        }
+        
+        .contact-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .contact-card {
+            background: rgba(51, 51, 51, 0.6);
+            border-radius: 10px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .contact-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .contact-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .footer {
+            background: rgba(17, 17, 17, 0.95);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            border-top: 1px solid #333;
+        }
+        
+        .footer p {
+            color: #ccc;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            nav ul {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .page-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .faq-categories {
+                grid-template-columns: 1fr;
+            }
+            
+            .contact-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">UCES FAQs</a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="nomination.php">Candidates</a></li>
+                    <li><a href="results.html">Results</a></li>
+                    <li><a href="faqs.html" class="active">FAQs</a></li>
+                    <li><a href="login.php">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1>Frequently Asked Questions</h1>
+            <p>Find answers to common questions about registration, voting, and the election process.</p>
+        </div>
+
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="Search for answers..." id="searchInput">
+        </div>
+
+        <div class="faq-categories">
+            <div class="category-card" onclick="scrollToSection('registration')">
+                <div class="category-icon">📝</div>
+                <div class="category-title">Registration</div>
+                <div class="category-count">5 questions</div>
+            </div>
+            <div class="category-card" onclick="scrollToSection('voting')">
+                <div class="category-icon">🗳️</div>
+                <div class="category-title">Voting Process</div>
+                <div class="category-count">6 questions</div>
+            </div>
+            <div class="category-card" onclick="scrollToSection('technical')">
+                <div class="category-icon">⚙️</div>
+                <div class="category-title">Technical Support</div>
+                <div class="category-count">4 questions</div>
+            </div>
+            <div class="category-card" onclick="scrollToSection('general')">
+                <div class="category-icon">ℹ️</div>
+                <div class="category-title">General</div>
+                <div class="category-count">3 questions</div>
+            </div>
+        </div>
+
+        <!-- Registration Section -->
+        <div class="faq-section" id="registration">
+            <h2 class="section-title">Registration Questions</h2>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        How do I register to vote?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        To register, click the <span class="highlight">"Register to Vote"</span> button on the homepage. You'll need your official student ID and a valid email address. The system will verify your student ID with the university database before allowing registration.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What if my student ID is not recognized?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        If your student ID isn't recognized, please ensure you're entering it correctly. The system checks against the official university database. If problems persist, contact the election administration or your student services office.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Can I change my registration information?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Once registered, you can update your email and full name by logging into your account. However, your student ID cannot be changed as it's used for verification purposes.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What are the password requirements?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Passwords must be at least <span class="highlight">8 characters long</span> and contain at least one uppercase letter, one lowercase letter, and one number. This ensures your account remains secure.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Is there a registration deadline?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Registration typically closes 24 hours before voting begins. Check the election timeline on the homepage for specific dates and deadlines.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voting Section -->
+        <div class="faq-section" id="voting">
+            <h2 class="section-title">Voting Process</h2>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        How do I cast my vote?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        After logging in during the voting period, you'll see all available positions and candidates. Select one candidate for each position, review your choices, and click <span class="highlight">"Submit My Vote"</span>. Your vote is final and cannot be changed.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Can I vote more than once?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        No, each registered student can only vote once. The system prevents multiple voting attempts and tracks this for security purposes while maintaining ballot anonymity.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What are the voting hours?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Voting is typically open from <span class="highlight">9:00 AM to 8:00 PM</span> on election day. The exact times are displayed on the main page and in your student dashboard.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Is my vote anonymous?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Yes, your vote is completely anonymous. While the system tracks that you voted (to prevent multiple voting), it cannot link your specific vote choices back to your identity.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Can I vote from my phone?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Yes! The voting system is fully responsive and works on smartphones, tablets, and computers. You can vote from any device with internet access.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What if I make a mistake before submitting?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        You can change your selections before clicking "Submit My Vote." The system shows a summary of your choices for review. However, once submitted, votes cannot be changed.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Section -->
+        <div class="faq-section" id="technical">
+            <h2 class="section-title">Technical Support</h2>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        What browsers are supported?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        UCES works with all modern browsers including <span class="highlight">Chrome, Firefox, Safari, and Edge</span>. For the best experience, please use the latest version of your preferred browser.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        I'm having trouble logging in. What should I do?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        First, ensure you're using the correct student ID and password. If you've forgotten your password, try refreshing the page. If problems persist, your account may be temporarily locked due to multiple failed attempts.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        The page won't load properly. What's wrong?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Try refreshing your browser, clearing your cache, or using a different browser. Ensure you have a stable internet connection. If issues continue, the system may be experiencing high traffic.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Is the voting system secure?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Yes, UCES uses <span class="highlight">enterprise-level security</span> including encrypted connections, secure authentication, rate limiting, and comprehensive audit logging to ensure election integrity.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- General Section -->
+        <div class="faq-section" id="general">
+            <h2 class="section-title">General Questions</h2>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        When will results be announced?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Results are typically available <span class="highlight">immediately after voting closes</span>. You can view live results on the Results page, which updates automatically as votes are counted.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Who can I contact for help?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        For technical issues, contact IT support. For election-related questions, reach out to the Student Council or Election Committee. Contact information is available in the Contact section below.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        Can I run for multiple positions?
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Typically, students can only run for one position per election. Check your university's election rules for specific guidelines about candidacy requirements and restrictions.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="contact-section">
+            <h2>Still Need Help?</h2>
+            <p>Can't find the answer you're looking for? Get in touch with our support team.</p>
+            
+            <div class="contact-options">
+                <div class="contact-card">
+                    <div class="contact-icon">📧</div>
+                    <h3>Email Support</h3>
+                    <p>elections@university.edu</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">💬</div>
+                    <h3>Student Services</h3>
+                    <p>Visit the Student Center</p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">🔧</div>
+                    <h3>Technical Support</h3>
+                    <p>IT Help Desk: ext. 1234</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 University Council Election System. All rights reserved.</p>
+        <p>Your questions help us improve the voting experience for everyone.</p>
+    </footer>
+
+    <script>
+        function toggleFAQ(element) {
+            const faqItem = element.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all other FAQ items
+            document.querySelectorAll('.faq-item.active').forEach(item => {
+                if (item !== faqItem) {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // Toggle current item
+            faqItem.classList.toggle('active', !isActive);
+        }
+
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const faqItems = document.querySelectorAll('.faq-item');
+            
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question').textContent.toLowerCase();
+                const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+                
+                if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    if (searchTerm.length > 2) {
+                        item.classList.add('active');
+                    }
+                } else {
+                    item.style.display = searchTerm ? 'none' : 'block';
+                }
+            });
+            
+            // Show/hide sections based on visible items
+            document.querySelectorAll('.faq-section').forEach(section => {
+                const visibleItems = section.querySelectorAll('.faq-item[style*="block"], .faq-item:not([style*="none"])');
+                section.style.display = visibleItems.length > 0 ? 'block' : 'none';
+            });
+        });
+
+        // Auto-expand frequently searched items
+        document.addEventListener('DOMContentLoaded', function() {
+            const popularQuestions = ['How do I register', 'How do I cast my vote'];
+            
+            popularQuestions.forEach(question => {
+                const faqItems = document.querySelectorAll('.faq-question');
+                faqItems.forEach(item => {
+                    if (item.textContent.includes(question.toLowerCase())) {
+                        // Could mark as popular or highlight
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

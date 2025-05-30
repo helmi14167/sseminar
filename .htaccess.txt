@@ -1,0 +1,30 @@
+# XAMPP-friendly .htaccess
+RewriteEngine On
+
+# Custom Error Pages (adjusted for XAMPP)
+ErrorDocument 404 /uces/error_handler.php?code=404
+ErrorDocument 403 /uces/error_handler.php?code=403
+ErrorDocument 500 /uces/error_handler.php?code=500
+
+# Security Headers (if mod_headers is enabled)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set X-Frame-Options DENY
+</IfModule>
+
+# Prevent access to sensitive files
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sql|bak|config)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Block directory browsing
+Options -Indexes
+
+# Pretty URLs
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^admin/?$ admin_dashboard.php [L]
+RewriteRule ^vote/?$ welcome.php [L]
+RewriteRule ^candidates/?$ nomination.php [L]

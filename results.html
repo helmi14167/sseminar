@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCES - Election Results</title>
+    <meta name="description" content="Live election results for the University Council Election System">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 193, 7, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(33, 150, 243, 0.1) 0%, transparent 50%);
+            filter: blur(40px);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            33% { transform: translateY(-30px) scale(1.1); }
+            66% { transform: translateY(-20px) scale(0.9); }
+        }
+        
+        .header {
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #333;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffc107;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo::before {
+            content: '📊';
+            font-size: 1.5rem;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        nav a:hover, nav a.active {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .page-header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-header p {
+            font-size: 1.2rem;
+            color: #ccc;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffc107;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        
+        .results-container {
+            display: grid;
+            gap: 3rem;
+        }
+        
+        .position-results {
+            background: rgba(51, 51, 51, 0.8);
+            border-radius: 15px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .position-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #ffc107;
+        }
+        
+        .position-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .position-icon {
+            font-size: 2rem;
+        }
+        
+        .position-name {
+            font-size: 1.8rem;
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .total-votes {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .candidates-results {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .candidate-result {
+            background: rgba(68, 68, 68, 0.6);
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .candidate-result.winner {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+        }
+        
+        .candidate-result.winner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4CAF50, #66bb6a);
+        }
+        
+        .winner-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #4CAF50;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .candidate-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffc107;
+            flex-shrink: 0;
+        }
+        
+        .candidate-info {
+            flex-grow: 1;
+        }
+        
+        .candidate-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        
+        .vote-bar-container {
+            background: rgba(34, 34, 34, 0.8);
+            border-radius: 10px;
+            height: 30px;
+            position: relative;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .vote-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #66bb6a);
+            border-radius: 10px;
+            transition: width 1s ease-out;
+            position: relative;
+        }
+        
+        .vote-bar.second {
+            background: linear-gradient(90deg, #2196F3, #64b5f6);
+        }
+        
+        .vote-bar.third {
+            background: linear-gradient(90deg, #ff9800, #ffb74d);
+        }
+        
+        .vote-percentage {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+        
+        .vote-count {
+            font-size: 1.1rem;
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            margin-top: 2rem;
+            background: rgba(34, 34, 34, 0.5);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        
+        .chart-title {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #ccc;
+        }
+        
+        .no-results-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .refresh-info {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #2196F3;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #ccc;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid #ffc107;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            background: rgba(17, 17, 17, 0.95);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            border-top: 1px solid #333;
+        }
+        
+        .footer p {
+            color: #ccc;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            nav ul {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .page-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .position-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+            
+            .candidate-result {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .candidate-photo {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">UCES Results</a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="nomination.php">Candidates</a></li>
+                    <li><a href="results.html" class="active">Results</a></li>
+                    <li><a href="faqs.html">FAQs</a></li>
+                    <li><a href="login.php">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1>Election Results</h1>
+            <p>Live results from the University Council Elections. Results update automatically as votes are counted.</p>
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                LIVE RESULTS
+            </div>
+        </div>
+
+        <div class="refresh-info">
+            <strong>📡 Auto-Refresh:</strong> Results update every 10 seconds automatically. Last updated: <span id="lastUpdated">Loading...</span>
+        </div>
+
+        <div class="stats-overview" id="statsOverview">
+            <div class="stat-card">
+                <span class="stat-number" id="totalVotes">-</span>
+                <span class="stat-label">Total Votes</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalCandidates">-</span>
+                <span class="stat-label">Candidates</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalVoters">-</span>
+                <span class="stat-label">Voters</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="turnoutRate">-</span>
+                <span class="stat-label">Turnout Rate</span>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <p>Loading election results...</p>
+        </div>
+
+        <div class="results-container" id="resultsContainer" style="display: none;">
+            <!-- Results will be populated here -->
+        </div>
+
+        <div class="no-results" id="noResults" style="display: none;">
+            <div class="no-results-icon">🗳️</div>
+            <h2>No Results Available</h2>
+            <p>Voting hasn't started yet or no votes have been cast. Check back during the election period!</p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 University Council Election System. All rights reserved.</p>
+        <p>Results are updated in real-time and reflect all verified votes.</p>
+    </footer>
+
+    <script>
+        let resultsChart = null;
+        let lastFetchTime = null;
+
+        // Position icons mapping
+        const positionIcons = {
+            'president': '👑',
+            'vice_president': '🎖️',
+            'secretary': '📝',
+            'treasurer': '💰'
+        };
+
+        // Position names mapping
+        const positionNames = {
+            'president': 'President',
+            'vice_president': 'Vice President',
+            'secretary': 'Secretary',
+            'treasurer': 'Treasurer'
+        };
+
+        async function fetchResults() {
+            try {
+                const response = await fetch('fetch_results.php');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const results = await response.json();
+                
+                if (results.error) {
+                    throw new Error(results.error);
+                }
+                
+                displayResults(results);
+                updateLastFetchTime();
+                
+            } catch (error) {
+                console.error('Error fetching results:', error);
+                showError('Failed to load results. Retrying...');
+            }
+        }
+
+        function displayResults(results) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const noResults = document.getElementById('noResults');
+            const statsOverview = document.getElementById('statsOverview');
+
+            loadingIndicator.style.display = 'none';
+
+            if (!results || results.length === 0) {
+                noResults.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                return;
+            }
+
+            noResults.style.display = 'none';
+            resultsContainer.style.display = 'block';
+
+            // Group results by position
+            const groupedResults = {};
+            let totalVotes = 0;
+            let totalCandidates = 0;
+            const votersSet = new Set();
+
+            results.forEach(result => {
+                if (!groupedResults[result.position]) {
+                    groupedResults[result.position] = [];
+                }
+                groupedResults[result.position].push(result);
+                totalVotes += parseInt(result.votes) || 0;
+                totalCandidates++;
+            });
+
+            // Update stats
+            updateStats(totalVotes, totalCandidates, votersSet.size);
+
+            // Clear previous results
+            resultsContainer.innerHTML = '';
+
+            // Display results for each position
+            Object.keys(groupedResults).forEach(position => {
+                const candidates = groupedResults[position];
+                
+                // Sort candidates by votes (descending)
+                candidates.sort((a, b) => (parseInt(b.votes) || 0) - (parseInt(a.votes) || 0));
+                
+                // Calculate total votes for this position
+                const positionTotalVotes = candidates.reduce((sum, candidate) => 
+                    sum + (parseInt(candidate.votes) || 0), 0);
+
+                const positionDiv = createPositionSection(position, candidates, positionTotalVotes);
+                resultsContainer.appendChild(positionDiv);
+            });
+
+            // Create charts for visual representation
+            createResultsChart(results);
+        }
+
+        function createPositionSection(position, candidates, totalVotes) {
+            const section = document.createElement('div');
+            section.className = 'position-results';
+
+            const positionName = positionNames[position] || position.replace('_', ' ').toUpperCase();
+            const positionIcon = positionIcons[position] || '🏛️';
+
+            section.innerHTML = `
+                <div class="position-header">
+                    <div class="position-title">
+                        <span class="position-icon">${positionIcon}</span>
+                        <span class="position-name">${positionName}</span>
+                    </div>
+                    <div class="total-votes">${totalVotes} Total Votes</div>
+                </div>
+                <div class="candidates-results">
+                    ${candidates.map((candidate, index) => createCandidateResult(candidate, totalVotes, index === 0)).join('')}
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">${positionName} - Vote Distribution</div>
+                    <canvas id="chart-${position}" width="400" height="200"></canvas>
+                </div>
+            `;
+
+            // Create individual chart for this position
+            setTimeout(() => {
+                createPositionChart(position, candidates);
+            }, 100);
+
+            return section;
+        }
+
+        function createCandidateResult(candidate, totalVotes, isWinner) {
+            const votes = parseInt(candidate.votes) || 0;
+            const percentage = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : 0;
+            
+            let barClass = 'vote-bar';
+            if (isWinner) barClass += ' winner';
+            else if (votes > 0) {
+                // Add different colors for 2nd and 3rd place
+                const sortedVotes = [votes]; // This would need more context in real implementation
+                barClass += votes === sortedVotes[1] ? ' second' : ' third';
+            }
+
+            const photoSrc = candidate.photo ? 
+                `data:image/jpeg;base64,${candidate.photo}` : 
+                `data:image/svg+xml;base64,${btoa(`<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="80" fill="#4CAF50"/><text x="40" y="50" font-family="Arial" font-size="30" fill="white" text-anchor="middle" dy=".3em">${candidate.candidate_name.charAt(0).toUpperCase()}</text></svg>`)}`;
+
+            return `
+                <div class="candidate-result ${isWinner ? 'winner' : ''}">
+                    ${isWinner ? '<div class="winner-badge">🏆 WINNER</div>' : ''}
+                    <img src="${photoSrc}" alt="${candidate.candidate_name}" class="candidate-photo" 
+                         onerror="this.src='data:image/svg+xml;base64,${btoa(`<svg width="80" height="80" xmlns="http://www.w3.org/2000/svg"><rect width="80" height="80" fill="#4CAF50"/><text x="40" y="50" font-family="Arial" font-size="30" fill="white" text-anchor="middle" dy=".3em">${candidate.candidate_name.charAt(0).toUpperCase()}</text></svg>`)}'">
+                    <div class="candidate-info">
+                        <div class="candidate-name">${candidate.candidate_name}</div>
+                        <div class="vote-bar-container">
+                            <div class="${barClass}" style="width: ${percentage}%">
+                                <span class="vote-percentage">${percentage}%</span>
+                            </div>
+                        </div>
+                        <div class="vote-count">${votes} votes</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createPositionChart(position, candidates) {
+            const ctx = document.getElementById(`chart-${position}`);
+            if (!ctx) return;
+
+            const labels = candidates.map(c => c.candidate_name);
+            const data = candidates.map(c => parseInt(c.votes) || 0);
+            const colors = [
+                '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', 
+                '#F44336', '#00BCD4', '#CDDC39', '#FF5722'
+            ];
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, data.length),
+                        borderColor: '#333',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createResultsChart(results) {
+            const ctx = document.getElementById('overallChart');
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (resultsChart) {
+                resultsChart.destroy();
+            }
+
+            const labels = results.map(r => r.candidate_name);
+            const data = results.map(r => parseInt(r.votes) || 0);
+
+            resultsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Votes',
+                        data: data,
+                        backgroundColor: 'rgba(255, 193, 7, 0.6)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#444' },
+                            ticks: { color: '#fff' }
+                        },
+                        x: {
+                            grid: { color: '#444' },
+                            ticks: { 
+                                color: '#fff',
+                                maxRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStats(totalVotes, totalCandidates, totalVoters) {
+            document.getElementById('totalVotes').textContent = totalVotes.toLocaleString();
+            document.getElementById('totalCandidates').textContent = totalCandidates;
+            document.getElementById('totalVoters').textContent = totalVoters;
+            
+            // Calculate turnout rate (this would need total registered users from backend)
+            // For now, showing a placeholder
+            document.getElementById('turnoutRate').textContent = totalVoters > 0 ? `${Math.min(100, Math.round((totalVoters / 1000) * 100))}%` : '0%';
+        }
+
+        function updateLastFetchTime() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+            lastFetchTime = now;
+        }
+
+        function showError(message) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.innerHTML = `
+                <div style="color: #ff6b6b; text-align: center;">
+                    <p>⚠️ ${message}</p>
+                </div>
+            `;
+        }
+
+        // Initialize and set up auto-refresh
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchResults();
+            
+            // Auto-refresh every 10 seconds
+            setInterval(fetchResults, 10000);
+            
+            // Add refresh button functionality
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                    e.preventDefault();
+                    fetchResults();
+                }
+            });
+        });
+
+        // Smooth animations for vote bars
+        function animateVoteBars() {
+            const voteBars = document.querySelectorAll('.vote-bar');
+            voteBars.forEach((bar, index) => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, index * 100);
+            });
+        }
+
+        // Call animation after results are displayed
+        setTimeout(animateVoteBars, 500);
+    </script>
+</body>
+</html>
